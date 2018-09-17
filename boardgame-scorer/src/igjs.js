@@ -1,5 +1,4 @@
 import React, { Component } from 'react'
-import ReactDOM from 'react-dom'
 import WordCloud from './WordCloud'
 var Sentiment = require('sentiment');
 var sentiment = new Sentiment()
@@ -25,7 +24,8 @@ export default class InstagramScraper extends Component {
       {word: 'github', value: 1},
       {word: 'code', value: 1},
     ];
-    this.myDiv = document.createElement('div');
+    this.state.currentPosts = '<p>No posts yet</p>'
+    this.addPosts = this.addPosts.bind(this)
   }
   onSubmit(evt){
     evt.preventDefault();
@@ -39,10 +39,12 @@ export default class InstagramScraper extends Component {
       <form onSubmit={this.onSubmit}>
         <label>Target Instagram Username</label>
         <input name='targetInstagramUser' onChange={this.onChange} />
-        <button onClick={this.collectPosts}>Hello To all those watching</button>
+        <button onClick={this.collectPosts}>Search for this user's 10 most recent posts</button>
+        <p><i>Disclaimer: This can only be performed on public instagram accounts due to facebook deprecating all api integration</i></p>
       </form>
       <div id='CustomWordCloud'></div>
       <WordCloud displayWords={this.state.words}></WordCloud>
+      <button onClick={this.addPosts}>Click To Open Posts</button>
     </div>)
   }
   getPosts(user) {
@@ -94,7 +96,7 @@ export default class InstagramScraper extends Component {
         let countPair = Object.values(TextCount[key])
         let wordName = countPair[0]
         let wordCount = countPair[1]
-        str += `<div>${countPair}</div>`
+        //str += `<div>${countPair}</div>`
         if(!countTotal[wordName]){
           countTotal[wordName] = +wordCount
         }
@@ -103,8 +105,11 @@ export default class InstagramScraper extends Component {
         }
       }
       str += "<br/>"
+      str += `<p>${JSON.stringify(sentiment.analyze(posts[postNumber].caption))}</p>`
+
     }
-    str += `<p>${Object.entries(countTotal)}</p><br/>`
+    //str += `<p>${Object.entries(countTotal)}</p><br/>`
+    this.setState({currentPosts: str})
     this.displayWordCloud(countTotal);
     return str
   }
@@ -116,13 +121,18 @@ export default class InstagramScraper extends Component {
       newArr.push({'word': currentEntry[0], 'value': Number(currentEntry[1])})
     }
     this.setState({words: newArr})
-    ReactDOM.createPortal(<WordCloud displayWords={newArr}></WordCloud>, this.myDiv)
+    
+    //Forcefully throw error to cause rerender of element (Required error)
     alert(JSON.stringify(sentiment.analyze(newArr)))
   }
   collectPosts() {
     this.getPosts(this.state.targetInstagramUser).then(posts =>
       document.getElementById("posts_data").innerHTML += this.separatePosts(posts)    
     )
+  }
+
+  addPosts(){
+    document.getElementById('posts_data').innerHTML += this.state.currentPosts;
   }
   wordCounter(text){
     let counter = new WordCounter({mincount: 1, minlength: 4, ignore: [''], ignorecase: true}); 
